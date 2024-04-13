@@ -1,0 +1,221 @@
+// ==UserScript==
+// @name         小红书自动点赞评论
+// @namespace    https://simonzhao.com
+// @version      0.9
+// @description  使用该脚本可在小红书网站进行自动点赞、评论用户笔记，适合使用小号进行吸粉引流辅助。
+// @author       simonzhao.com
+// @match        https://www.xiaohongshu.com/explore*
+// @icon         https://fe-video-qc.xhscdn.com/fe-platform/ed8fe781ce9e16c1bfac2cd962f0721edabe2e49.ico
+// @grant        none
+// ==/UserScript==
+
+(function() {
+    // Function to simulate clicking on a DOM element
+    const clickElement = async (element) => {
+        // Prevent the default behavior of the click event
+        element.addEventListener('click', function(event) {
+            event.preventDefault();
+        });
+
+        // Trigger the click event
+        element.click();
+
+        // Wait for a short delay before proceeding
+        await sleep(SLEEP_TIME);
+    };
+
+    const comment = async (element) => {
+        // Define an array of possible comment texts
+        const commentOptions = ["互相奔赴！", "双向奔赴！", "奔赴呀！"];
+
+        // Select a random comment text from the array
+        const randomIndex = Math.floor(Math.random() * commentOptions.length);
+        const commentText = commentOptions[randomIndex];
+
+        // Clear any existing text in the input field
+        element.textContent = '';
+
+        // Simulate typing the comment text into the input field
+        for (let char of commentText) {
+            element.textContent += char;
+            // Trigger input event to simulate typing
+            element.dispatchEvent(new InputEvent('input', { bubbles: true }));
+            // Wait for a short delay between each character (adjust as needed)
+            await sleep(100);
+        }
+
+        const submitButton = document.querySelector('.note-container .btn.submit');
+        console.log(submitButton);
+        await clickElement(submitButton);
+
+        // Wait for a short delay before proceeding
+        await sleep(SLEEP_TIME);
+    }
+
+
+    // Function to add a comment to a post
+    const addComment = async (postElement) => {
+
+        const contentList = document.querySelectorAll('.note-container .content-edit');
+        console.log('共有评论条', contentList.length, '条');
+
+        // Locate the content edit section within the opened note
+        const contentEditSection = document.querySelector('.note-container .content-edit');
+
+        console.log(contentEditSection);
+
+        if (contentEditSection) {
+
+            // Click on the inner section to activate the comment field
+            const notActiveInner = contentEditSection.querySelector('.inner');
+
+            console.log(notActiveInner);
+
+            if (notActiveInner) {
+                await clickElement(notActiveInner);
+            } else {
+                console.error('Not active inner section not found');
+                return;
+            }
+
+            // Wait for a short delay after activating the comment field
+            await sleep(1000);
+
+            // Locate the content input field within the opened note
+            const contentInput = contentEditSection.querySelector('.content-input');
+
+            // Set the value of the content input field
+            if (contentInput) {
+                await comment(contentInput);
+            } else {
+                console.error('Content input field not found');
+            }
+        } else {
+            console.error('Content edit section not found');
+        }
+    };
+
+
+    // Function to close the note by clicking the close button
+    const closeNote = async () => {
+        // Locate the close button for the note
+        const closeButton = document.querySelector('.close-circle .close');
+
+        console.log(closeButton);
+
+        if (closeButton) {
+            // Simulate clicking the close button
+            closeButton.click();
+            // Wait for a short delay after clicking the close button
+            await sleep(1000);
+        } else {
+            console.error('Close button not found');
+        }
+    };
+
+
+    // Function to pause execution for a given time
+    const sleep = async (milliseconds) => {
+        return new Promise(resolve => setTimeout(resolve, milliseconds));
+    };
+
+    // 注入UI到页面
+    const btn = document.createElement('div');
+    btn.style = `
+    font-size:12px;cursor:pointer;width: 50px;height: 50px;
+    background: linear-gradient(135deg, #FF512F 0%,#DD2476 100%);
+    border: 1px solid rgba(255,255,255,0.5);
+    position: fixed;right: 20px;bottom: 150px;z-index: 999;
+    display: flex;border-radius: 50px;align-items: center;justify-content: center;
+    `;
+    btn.innerText = '自动\n点赞';
+    // 设置睡眠时间为5秒
+    const SLEEP_TIME = 5000;
+    let stopRequested = false;
+    let processRunning = false; // Track if the process is currently running
+
+    btn.onclick = async () => {
+        if (processRunning) {
+            // If the process is already running, stop it immediately
+            stopRequested = true;
+            btn.innerText = '停止中';
+            console.warn('停止请求');
+            return;
+        }
+
+        if (stopRequested) {
+            stopRequested = false;
+            btn.innerText = '自动\n点赞';
+            console.warn('手动停止');
+            return;
+        }
+
+        // 开始执行
+        btn.innerText = '停止';
+        processRunning = true;
+        console.log('============== 公众号：小红秘书 ======================');
+        console.log('============== 开始执行点赞评论功能 ======================');
+
+        outerLoop: while (!stopRequested) {
+            // 获取帖子列表
+            console.log('获取帖子列表');
+            const postList = document.querySelectorAll('.cover.ld.mask');
+            console.log('共有帖子', postList.length, '条');
+            // 遍历帖子列表，对每个帖子进行点赞和评论
+            for (let i = 0; i < postList.length; i++) {
+                // Check if the stop request has been made before each iteration
+                if (stopRequested) {
+                    break outerLoop;
+                }
+
+                const post = postList[i];
+
+                console.log(post);
+
+                // Simulate clicking on the post to open it
+                await clickElement(post);
+
+                const testList = document.querySelectorAll('.note-container .test');
+                console.log('共有test键', testList.length, '个');
+
+                const likeList = document.querySelectorAll('.interact-container .like-wrapper.like-active');
+                console.log('共有点赞键', likeList.length, '个');
+
+                // 点赞
+                console.log('点赞帖子', i + 1);
+                const likeButton = document.querySelector('.note-container .interact-container .like-wrapper.like-active');
+
+                console.log(likeButton);
+
+                if (likeButton) {
+                    await clickElement(likeButton);
+                } else {
+                    console.error('Like button not found');
+                }
+
+                console.log('关注帖子', i + 1);
+                const followButton = document.querySelector('.note-container .reds-button-new-text');
+                await clickElement(followButton);
+
+                // 评论
+                console.log('评论帖子', i + 1);
+                await addComment(post);
+
+                // 关闭帖子
+                console.log('关闭帖子', i + 1);
+                await closeNote();
+
+                // 等待一段时间后继续下一个帖子
+                await sleep(5000); // Wait for 1 second before proceeding to the next post
+            }
+            console.log('所有帖子点赞评论完毕');
+        }
+
+        stopRequested = false;
+        btn.innerText = '自动\n点赞';
+        processRunning = false;
+        console.warn('手动停止');
+    };
+
+    document.body.appendChild(btn);
+})();
